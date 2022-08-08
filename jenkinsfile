@@ -1,0 +1,85 @@
+pipeline
+{
+    agent 
+    {
+        label 'Linux_slave'
+    }
+    
+    tools 
+    {
+        maven 'Jenkins_Maven'
+        git 'Default'
+        jdk 'Jenkins_JAVA'
+    }
+    
+    stages
+    {
+        stage ('FetchRepo')
+        {
+            steps
+            {
+                git 'https://github.com/VGupta434/DevOpsClassCodes.git'
+            }
+        }
+        
+        stage ('Compile')
+        {
+            steps
+            {
+                echo 'Compiling'
+                sh 'mvn compile'
+            }
+        }
+        
+        stage ('Code Review')
+        {
+            steps
+            {
+                echo 'Reviewing Code'
+                sh 'mvn pmd:pmd'
+            }
+            
+            post
+            {
+                success
+                {
+                    recordIssues(tools: [pmdParser(pattern: 'target/pmd.xml')])
+                }
+            }
+        }
+        
+        stage ('Test')
+        {
+            steps
+            {
+                echo 'Testing'
+                sh 'mvn test'
+            }
+            
+            post
+            {
+                success
+                {
+                    jacoco()
+                }
+            }
+        }
+        stage ('Packege')
+        {
+            steps
+            {
+                echo 'Packaging'
+                sh 'mvn package'
+            }
+        }
+        stage ('Deploy')
+        {
+            steps
+            {
+                sh 'pwd'
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'ansibleServer', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '//opt//artifacts//', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'target/addressbook.war')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'ansibleServer', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: 'ansible-playbook -i /home/ubuntu/ansible_yaml/Ansible_project/tomcatInventory /home/ubuntu/ansible_yaml/Ansible_project/copyToTomcat.yaml', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+        }
+    }
+}

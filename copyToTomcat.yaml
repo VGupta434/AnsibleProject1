@@ -1,0 +1,12 @@
+---
+- hosts: TomcatServer
+  become: true
+  tasks:
+  - name: copy file from ansible to tomcat
+    copy:
+      src: /opt/artifacts/target/addressbook.war
+      dest: /opt/tomcat/webapps
+  - name: restart tomcat
+    shell:
+      cmd: systemctl restart tomcat
+...
